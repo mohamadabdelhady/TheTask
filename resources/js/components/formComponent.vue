@@ -12,11 +12,11 @@
                     <p class="mt-2"><span>{{option.name}}</span></p>
                     <v-select @option:selected="()=>showOtherOption(option,selectedOptions[index],index)" class="style-chooser" :options="option.options" label="name" v-model="selectedOptions[index]"></v-select>
                     <input v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
-                    <div v-if="doesHaveChild(selectedOptions[index])">
-                        <div v-for="(choice,i) in childOptions" class="childOptions">
+                    <div v-if="doesHaveChild(selectedOptions[index])" :key="childOptions">
+                        <div v-for="(choice,i) in childOptions" :key="i" class="childOptions">
                             <div v-if="choice.value===index.toString()">
                             <p class="mt-2"><span>{{choice.name}}</span></p>
-                            <v-select class="style-chooser" :options="choice.options" v-bind="temp" v-model="selectedChild[selectedChild.length]" label="name" ></v-select>
+                            <v-select @option:selected="()=>getOptionL(selectedChild[i],i)" class="style-chooser" :options="choice.options" v-bind="temp" v-model="selectedChild[i]" label="name" ></v-select>
                         </div>
                         </div>
                     </div>
@@ -74,7 +74,6 @@ export default {
             mainCategories: [],
             selectedMainCategory: null,
             selectedSubCategory: null,
-            selectedBrand: null,
             selectedChild: [],
             subcategories: [],
             subCatOptions: [],
@@ -111,7 +110,6 @@ export default {
             },
             getOption(selected,i) {
                 if (this.doesHaveChild(selected)) {
-                    console.log(selected.id);
                     axios
                         .get('/api/getOptionChildren/' + selected.id)
                         .then(response => {
@@ -123,7 +121,37 @@ export default {
                             console.log(error)
                         });
                 }
-            }
+            },
+            getOptionL(selected,i) {
+                // if (this.doesHaveChild(selected)) {
+                    console.log(selected);
+                    axios
+                        .get('/api/getOptionChildren/' + selected.id)
+                        .then(response => {
+                            let r = response.data.data;
+                            console.log(selected.parent);
+                            r[0].value=i.toString();
+                            this.childOptions.push(r[0]);
+                            console.log('3');
+                        })
+                        .catch(error => {
+                            console.log(error)
+                        });
+                // }
+            },
+            // clearOption(index,el)
+            // {
+            //     if(this.childOptions[index]==null)
+            //     {
+            //         this.childOptions.pop();
+            //        if(this.childOptions[index-1]!=null)
+            //            this.childOptions.pop();
+            //     }
+            //     else
+            //     {
+            //
+            //     }
+            // }
         },
     beforeMount: function () {
         this.mainCategories = [];
@@ -142,19 +170,23 @@ export default {
                 this.subcategories = [];
                 this.subcategories = newVal.children;
                 this.selectedSubCategory = null;
+                this.subCatOptions = [];
+                this.childOptions = [];
+                this.selectedOptions = [];
             } else {
                 this.subcategories = [];
                 this.subCatOptions = [];
-                // this.childOptions = [];
+                this.childOptions = [];
                 this.selectedOptions = [];
                 this.selectedSubCategory = null;
-                this.selectedBrand = null;
             }
         },
 
         selectedSubCategory: function (newVal) {
             if (newVal != null) {
                 this.subCatOptions = [];
+                this.childOptions = [];
+                this.selectedOptions = [];
                 axios
                     .post('/api/getCategoryOption', {selectedSubCat: this.selectedSubCategory.id})
                     .then(response => {
@@ -168,53 +200,8 @@ export default {
                     });
             } else {
                 this.subCatOptions = [];
-                // this.childOptions = [];
+                this.childOptions = [];
                 this.selectedOptions = [];
-            }
-        },
-        // selectedOptions: {
-        //     deep: true,
-        //     handler(newVal) {
-        //         for (let i = 0; i < newVal.length; i++) {
-        //             if (newVal[i] != null) {
-        //                 if (newVal[i].child) {
-        //                     axios
-        //                         .get('/api/getOptionChildren/' + newVal[i].id)
-        //                         .then(response => {
-        //                             let r = response.data.data;
-        //                             this.childOptions.push(r[0]);
-        //                         })
-        //                         .catch(error => {
-        //                             console.log(error)
-        //                         });
-        //                 } else {
-        //
-        //                 }
-        //
-        //             }
-        //         }
-        //     }
-        // },
-        selectedChild: {
-            deep: true,
-            handler(newVal) {
-                    if (newVal[(newVal.length)-1]!= null) {
-                        if (newVal[(newVal.length)-1].child) {
-                            axios
-                                .get('/api/getOptionChildren/' + newVal[(newVal.length)-1].id)
-                                .then(response => {
-                                    let r = response.data.data;
-                                     r[0].value=this.childOptions[[(newVal.length)-1]].value;
-                                    this.childOptions.push(r[0]);
-                                })
-                                .catch(error => {
-                                    console.log(error)
-                                });
-                        } else {
-
-                        }
-
-                    }
             }
         },
     }

@@ -13,11 +13,11 @@
                     <v-select @option:selected="()=>showOtherOption(option,selectedOptions[index],index)" class="style-chooser" :options="option.options" label="name" v-model="selectedOptions[index]"></v-select>
                     <input v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
                     <div v-if="doesHaveChild(selectedOptions[index])" :key="childOptions">
-                        <div v-for="(choice,i) in childOptions" :key="i" class="childOptions">
-                            <div v-if="choice.value===index.toString()">
+                        <div v-for="(choice,i) in childOptions" class="childOptions">
+<!--                            <div v-if="choice.value===index.toString()">-->
                             <p class="mt-2"><span>{{choice.name}}</span></p>
-                            <v-select @option:selected="()=>getOptionL(selectedChild[i],i)" class="style-chooser" :options="choice.options" v-bind="temp" v-model="selectedChild[i]" label="name" ></v-select>
-                        </div>
+                            <v-select class="style-chooser" :options="choice.options" v-model="selectedChild[i]" label="name" ></v-select>
+<!--                        </div>-->
                         </div>
                     </div>
                    </div>
@@ -79,7 +79,7 @@ export default {
             subCatOptions: [],
             childOptions: [],
             selectedOptions: [],
-            temp:null,
+            level:0,
         }
     },
     methods:
@@ -110,48 +110,23 @@ export default {
             },
             getOption(selected,i) {
                 if (this.doesHaveChild(selected)) {
+                    this.childOptions=[];
+                    this.selectedChild=[];
                     axios
                         .get('/api/getOptionChildren/' + selected.id)
                         .then(response => {
+
+
                             let r = response.data.data;
                             r[0].value=i.toString();
                             this.childOptions.push(r[0]);
+                            this.level=i;
                         })
                         .catch(error => {
                             console.log(error)
                         });
                 }
             },
-            getOptionL(selected,i) {
-                // if (this.doesHaveChild(selected)) {
-                    console.log(selected);
-                    axios
-                        .get('/api/getOptionChildren/' + selected.id)
-                        .then(response => {
-                            let r = response.data.data;
-                            console.log(selected.parent);
-                            r[0].value=i.toString();
-                            this.childOptions.push(r[0]);
-                            console.log('3');
-                        })
-                        .catch(error => {
-                            console.log(error)
-                        });
-                // }
-            },
-            // clearOption(index,el)
-            // {
-            //     if(this.childOptions[index]==null)
-            //     {
-            //         this.childOptions.pop();
-            //        if(this.childOptions[index-1]!=null)
-            //            this.childOptions.pop();
-            //     }
-            //     else
-            //     {
-            //
-            //     }
-            // }
         },
     beforeMount: function () {
         this.mainCategories = [];
@@ -204,6 +179,30 @@ export default {
                 this.selectedOptions = [];
             }
         },
+        selectedChild:{
+            deep:true,
+            handler(newVal,oldVal){
+                if (newVal[newVal.length - 1] != null) {
+                    if (newVal[newVal.length - 1].child) {
+                        axios
+                            .get('/api/getOptionChildren/' + newVal[0].id)
+                            .then(response => {
+                                let r = response.data.data;
+                                this.childOptions.push(r[0]);
+                            })
+                            .catch(error => {
+                                console.log(error)
+                            });
+                    }
+                }
+                else
+                {
+                    this.childOptions.pop();
+                    this.selectedChild.pop();
+
+                }
+            }
+        }
     }
 }
 </script>

@@ -9,21 +9,18 @@
                 <p class="mt-2"><span>Sub Category </span><span class="asterisk">*</span></p>
                 <v-select class="style-chooser" :options="subcategories" label="name" v-model="selectedSubCategory" ></v-select>
                 <div v-for="(option,index) in subCatOptions" :key="index">
-                <p class="mt-2"><span>{{option.name}}</span></p>
-                    <div v-if="selectedSubCategory.id==13&&option.id==2">
-                        <v-select @option:selected="()=>getBrandOption(option,selectedOptionsOptions[index])" class="style-chooser" :options="option.options" label="name" v-model="selectedOptionsOptions[index]"></v-select>
-                        <input v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent" v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
-                        <div v-for="(child,i) in brandOptions" :key="i">
-                            <p class="brand mt-2"><span>{{child.name}}</span></p>
-                            <v-select class="style-chooser brand" :options="child.options" label="name" v-model="selectedChild"></v-select>
-                            <hr class="horLine" v-if="i+1==brandOptions.length">
+                    <p class="mt-2"><span>{{option.name}}</span></p>
+                    <v-select @option:selected="()=>showOtherOption(option,selectedOptions[index],index)" class="style-chooser" :options="option.options" label="name" v-model="selectedOptions[index]"></v-select>
+                    <input v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
+                    <div v-if="doesHaveChild(selectedOptions[index])">
+                        <div v-for="(choice,i) in childOptions" class="childOptions">
+                            <div v-if="choice.value===index.toString()">
+                            <p class="mt-2"><span>{{choice.name}}</span></p>
+                            <v-select class="style-chooser" :options="choice.options" v-bind="temp" v-model="selectedChild[selectedChild.length]" label="name" ></v-select>
+                        </div>
                         </div>
                     </div>
-                    <div v-else>
-                    <v-select @option:selected="()=>getOption(selectedOptionsOptions[index],option)" class="style-chooser" :options="option.options" label="name" v-model="selectedOptionsOptions[index]"></v-select>
-                    <input v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
-                    </div>
-                </div>
+                   </div>
                 </div>
                 <div class="formButton mt-2">
                     <!-- Button trigger modal -->
@@ -50,7 +47,7 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr v-for="(item,index) in selectedOptionsOptions">
+                                <tr v-for="(item,index) in selectedOptions">
                                     <td>{{subCatOptions[index].name}}</td>
                                     <td v-if="item!=null&&subCatOptions[index].name=='Brand'&&selectedChild!=null">{{item.name}} / {{selectedChild.name}}</td>
                                     <td v-else-if="item!=null&&item.name!='other'">{{item.name}}</td>
@@ -72,126 +69,154 @@
 <script>
 export default {
     name: "form-component",
-    data(){
-        return{
-            mainCategories:[],
-            selectedMainCategory:null,
-            selectedSubCategory:null,
-            selectedBrand:null,
-            selectedChild:null,
-            subcategories:[],
-            subCatOptions:[],
-            brandOptions:[],
-            selectedOptionsOptions:[],
+    data() {
+        return {
+            mainCategories: [],
+            selectedMainCategory: null,
+            selectedSubCategory: null,
+            selectedBrand: null,
+            selectedChild: [],
+            subcategories: [],
+            subCatOptions: [],
+            childOptions: [],
+            selectedOptions: [],
+            temp:null,
         }
     },
     methods:
         {
-            isVisable(x)
-            {
+            isVisable(x) {
                 return x.show;
             },
-            getOption(selected,option)
-            {
-                let x=option.options.find(item=>item.name=='other');
-                if(selected.name=='other')
-                    x.show=true;
+            showOtherOption(option, selected,i) {
+                let x = option.options.find(item => item.name == 'other');
+                if (selected.name == 'other')
+                    x.show = true;
                 else
-                    x.show=false;
-                this.selectedBrand=selected;
+                    x.show = false;
+              this.getOption(selected,i)
+
             },
-            getBrandOption(option,selected)
+            getOtherValue(option) {
+                let val = event.target.value;
+                let selector = option.options.find(item => item.name == 'other');
+                selector.content = val;
+            },
+            doesHaveChild(selected)
             {
-                let x=option.options.find(item=>item.name=='other');
-                if(selected.name=='other')
-                    x.show=true;
+                if(selected!=null)
+                    return selected.child;
                 else
-                    x.show=false;
-                this.selectedBrand=selected;
+                    return false
             },
-            getOtherValue(option)
-            {
-                let val=event.target.value;
-                let selector=option.options.find(item=>item.name=='other');
-                selector.content=val;
+            getOption(selected,i) {
+                if (this.doesHaveChild(selected)) {
+                    console.log(selected.id);
+                    axios
+                        .get('/api/getOptionChildren/' + selected.id)
+                        .then(response => {
+                            let r = response.data.data;
+                            r[0].value=i.toString();
+                            this.childOptions.push(r[0]);
+                        })
+                        .catch(error => {
+                            console.log(error)
+                        });
+                }
             }
         },
     beforeMount: function () {
-        this.mainCategories=[];
+        this.mainCategories = [];
         axios
             .get('/api/getAllCategories')
             .then(response => {
-                this.mainCategories=response.data.data.categories;
+                this.mainCategories = response.data.data.categories;
             })
             .catch(error => {
                 console.log(error)
             });
     },
-    watch:{
-        selectedMainCategory:function (newVal)
-        {
-            if(newVal!=null) {
-                this.subcategories=[];
+    watch: {
+        selectedMainCategory: function (newVal) {
+            if (newVal != null) {
+                this.subcategories = [];
                 this.subcategories = newVal.children;
-                this.selectedSubCategory=null;
-            }
-            else
-            {
-                this.subcategories=[];
-                this.subCatOptions=[];
-                this.brandOptions=[];
-                this.selectedOptionsOptions=[];
-                this.selectedSubCategory=null;
-                this.selectedBrand=null;
+                this.selectedSubCategory = null;
+            } else {
+                this.subcategories = [];
+                this.subCatOptions = [];
+                // this.childOptions = [];
+                this.selectedOptions = [];
+                this.selectedSubCategory = null;
+                this.selectedBrand = null;
             }
         },
 
-        selectedSubCategory:function (newVal)
-        {
-            if(newVal!=null)
-            {
-                this.subCatOptions=[];
+        selectedSubCategory: function (newVal) {
+            if (newVal != null) {
+                this.subCatOptions = [];
                 axios
-                    .post('/api/getCategoryOption',{selectedSubCat:this.selectedSubCategory.id})
+                    .post('/api/getCategoryOption', {selectedSubCat: this.selectedSubCategory.id})
                     .then(response => {
                         this.subCatOptions = response.data.data;
-                        this.subCatOptions.forEach((option, index) => {option.options.push({name:"other",show:false,content:""})
+                        this.subCatOptions.forEach((option, index) => {
+                            option.options.push({name: "other", show: false, content: ""})
                         });
                     })
                     .catch(error => {
                         console.log(error)
                     });
-            }
-            else
-            {
-                this.subCatOptions=[];
-                this.brandOptions=[];
-                this.selectedOptionsOptions=[];
+            } else {
+                this.subCatOptions = [];
+                // this.childOptions = [];
+                this.selectedOptions = [];
             }
         },
-        selectedBrand:function (newVal)
-        {
-            if(newVal!=null)
-            {
-                this.brandOptions=[];
-                this.selectedChild=null;
-                axios
-                    .get('/api/getOptionChildren/'+newVal.id)
-                    .then(response => {
-                        this.brandOptions = response.data.data;
-                    })
-                    .catch(error => {
-                        console.log(error)
-                    });
+        // selectedOptions: {
+        //     deep: true,
+        //     handler(newVal) {
+        //         for (let i = 0; i < newVal.length; i++) {
+        //             if (newVal[i] != null) {
+        //                 if (newVal[i].child) {
+        //                     axios
+        //                         .get('/api/getOptionChildren/' + newVal[i].id)
+        //                         .then(response => {
+        //                             let r = response.data.data;
+        //                             this.childOptions.push(r[0]);
+        //                         })
+        //                         .catch(error => {
+        //                             console.log(error)
+        //                         });
+        //                 } else {
+        //
+        //                 }
+        //
+        //             }
+        //         }
+        //     }
+        // },
+        selectedChild: {
+            deep: true,
+            handler(newVal) {
+                    if (newVal[(newVal.length)-1]!= null) {
+                        if (newVal[(newVal.length)-1].child) {
+                            axios
+                                .get('/api/getOptionChildren/' + newVal[(newVal.length)-1].id)
+                                .then(response => {
+                                    let r = response.data.data;
+                                     r[0].value=this.childOptions[[(newVal.length)-1]].value;
+                                    this.childOptions.push(r[0]);
+                                })
+                                .catch(error => {
+                                    console.log(error)
+                                });
+                        } else {
+
+                        }
+
+                    }
             }
-            else
-            {
-                this.brandOptions=[];
-                this.selectedOptionsOptions=[];
-                this.selectedBrand=null;
-                this.selectedChild=null;
-            }
-        }
+        },
     }
 }
 </script>
@@ -200,7 +225,7 @@ export default {
 .asterisk{
     color:darkred;
 }
-.brand{
+.childOptions{
     margin-left: 2rem;
     margin-right: 2rem;
 }
@@ -225,7 +250,6 @@ export default {
     display: none;
 }
 .horLine{
-    margin:1rem;
     opacity: 30%;
     color: grey;
 }

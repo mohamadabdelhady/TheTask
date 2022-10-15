@@ -49,7 +49,7 @@
                                 <tbody>
                                 <tr v-for="(item,index) in selectedOptions">
                                     <td>{{subCatOptions[index].name}}</td>
-                                    <td v-if="item!=null&&subCatOptions[index].name=='Brand'&&selectedChild!=null">{{item.name}} / {{selectedChild.name}}</td>
+                                    <td v-if="item!=null&&subCatOptions[index].name=='Brand'&&selectedChild!=null">{{getAllBrand(index)}}</td>
                                     <td v-else-if="item!=null&&item.name!='other'">{{item.name}}</td>
                                     <td v-else-if="item!=null&&item.name=='other'">{{item.content}}</td>
                                     <td v-else>Not selected</td>
@@ -127,6 +127,16 @@ export default {
                         });
                 }
             },
+            getAllBrand(i)
+            {
+                let o=this.selectedOptions[i].name;
+                for(let j=0;j<this.selectedChild.length;j++)
+                {
+                    o+='/'+this.selectedChild[j].name;
+                }
+                console.log(o);
+                return o;
+            }
         },
     beforeMount: function () {
         this.mainCategories = [];

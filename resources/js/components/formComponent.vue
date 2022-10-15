@@ -9,18 +9,20 @@
                 <p class="mt-2"><span>Sub Category </span><span class="asterisk">*</span></p>
                 <v-select class="style-chooser" :options="subcategories" label="name" v-model="selectedSubCategory" ></v-select>
                 <div v-for="(option,index) in subCatOptions" :key="index">
+                    <div :id="'option-'+index">
                     <p class="mt-2"><span>{{option.name}}</span></p>
-                    <v-select @option:selected="()=>showOtherOption(option,selectedOptions[index],index)" class="style-chooser" :options="option.options" label="name" v-model="selectedOptions[index]"></v-select>
+                    <v-select @option:selected="()=>showOtherOption(option,selectedOptions[index],index,0)" class="style-chooser" :options="option.options" label="name" v-model="selectedOptions[index]" ></v-select>
                     <input v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
                     <div v-if="doesHaveChild(selectedOptions[index])" :key="childOptions">
-                        <div v-for="(choice,i) in childOptions" class="childOptions">
-<!--                            <div v-if="choice.value===index.toString()">-->
-                            <p class="mt-2"><span>{{choice.name}}</span></p>
-                            <v-select class="style-chooser" :options="choice.options" v-model="selectedChild[i]" label="name" ></v-select>
-<!--                        </div>-->
+                            <div v-for="(op,i) in childOptions[index]" class="childOptions">
+                            <p class="mt-2"><span>{{op.name}}</span></p>
+                            <v-select :clearable="false" class="style-chooser" :options="op.options" v-model="selectedChild[index][i]" label="name" @option:selected="()=>showOtherOption(op,selectedChild[index][i],index,i+1)" ></v-select>
+                                <input v-show="isVisable(op.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(op)" placeholder="enter your option">
+                                <hr class="horLine" v-if="childOptions[index].length==i+1">
                         </div>
                     </div>
                    </div>
+                </div>
                 </div>
                 <div class="formButton mt-2">
                     <!-- Button trigger modal -->
@@ -49,7 +51,7 @@
                                 <tbody>
                                 <tr v-for="(item,index) in selectedOptions">
                                     <td>{{subCatOptions[index].name}}</td>
-                                    <td v-if="item!=null&&subCatOptions[index].name=='Brand'&&selectedChild!=null">{{getAllBrand(index)}}</td>
+                                    <td v-if="item!=null&&selectedChild[index]!=null">{{getAllChildOptions(index)}}</td>
                                     <td v-else-if="item!=null&&item.name!='other'">{{item.name}}</td>
                                     <td v-else-if="item!=null&&item.name=='other'">{{item.content}}</td>
                                     <td v-else>Not selected</td>
@@ -87,13 +89,13 @@ export default {
             isVisable(x) {
                 return x.show;
             },
-            showOtherOption(option, selected,i) {
+            showOtherOption(option, selected, i, l = null) {
                 let x = option.options.find(item => item.name == 'other');
                 if (selected.name == 'other')
                     x.show = true;
                 else
                     x.show = false;
-              this.getOption(selected,i)
+                this.getOption(selected, i, l)
 
             },
             getOtherValue(option) {
@@ -101,119 +103,107 @@ export default {
                 let selector = option.options.find(item => item.name == 'other');
                 selector.content = val;
             },
-            doesHaveChild(selected)
-            {
-                if(selected!=null)
+            doesHaveChild(selected) {
+                if (selected != null)
                     return selected.child;
                 else
                     return false
             },
-            getOption(selected,i) {
+            getOption(selected, i, l = null) {
                 if (this.doesHaveChild(selected)) {
-                    this.childOptions=[];
-                    this.selectedChild=[];
+                    if (l < 0) {
+                        this.childOptions[i] = [];
+                        this.selectedChild[i] = [];
+                    }
+
+                    if (selected == null) {
+                        this.selectedChild.pop();
+                        this.childOptions.pop();
+                    }
                     axios
                         .get('/api/getOptionChildren/' + selected.id)
                         .then(response => {
-
-
                             let r = response.data.data;
-                            r[0].value=i.toString();
-                            this.childOptions.push(r[0]);
-                            this.level=i;
+                            r.forEach((option, index) => {
+                                option.options.push({name: "other", show: false, content: ""});
+
+                            });
+                            if (l > 0)
+                                this.childOptions[i].push(r[0]);
+                            else {
+                                this.childOptions[i] = r;
+                                let arr2 = [];
+                                this.selectedChild[i] = arr2;
+                            }
                         })
                         .catch(error => {
                             console.log(error)
                         });
                 }
             },
-            getAllBrand(i)
-            {
-                let o=this.selectedOptions[i].name;
-                for(let j=0;j<this.selectedChild.length;j++)
-                {
-                    o+='/'+this.selectedChild[j].name;
-                }
-                console.log(o);
+            getAllChildOptions(i) {
+                let o = this.selectedOptions[i].name;
+                this.selectedChild[i].forEach(item=>{
+                    if(item.name=='other')
+                        o+='/'+item.content;
+                    else
+                        o+='/'+item.name;
+                })
                 return o;
             }
-        },
-    beforeMount: function () {
-        this.mainCategories = [];
-        axios
-            .get('/api/getAllCategories')
-            .then(response => {
-                this.mainCategories = response.data.data.categories;
-            })
-            .catch(error => {
-                console.log(error)
-            });
-    },
-    watch: {
-        selectedMainCategory: function (newVal) {
-            if (newVal != null) {
-                this.subcategories = [];
-                this.subcategories = newVal.children;
-                this.selectedSubCategory = null;
-                this.subCatOptions = [];
-                this.childOptions = [];
-                this.selectedOptions = [];
-            } else {
-                this.subcategories = [];
-                this.subCatOptions = [];
-                this.childOptions = [];
-                this.selectedOptions = [];
-                this.selectedSubCategory = null;
-            }
-        },
-
-        selectedSubCategory: function (newVal) {
-            if (newVal != null) {
-                this.subCatOptions = [];
-                this.childOptions = [];
-                this.selectedOptions = [];
+            },
+            beforeMount: function () {
+                this.mainCategories = [];
                 axios
-                    .post('/api/getCategoryOption', {selectedSubCat: this.selectedSubCategory.id})
+                    .get('/api/getAllCategories')
                     .then(response => {
-                        this.subCatOptions = response.data.data;
-                        this.subCatOptions.forEach((option, index) => {
-                            option.options.push({name: "other", show: false, content: ""})
-                        });
+                        this.mainCategories = response.data.data.categories;
                     })
                     .catch(error => {
                         console.log(error)
                     });
-            } else {
-                this.subCatOptions = [];
-                this.childOptions = [];
-                this.selectedOptions = [];
-            }
-        },
-        selectedChild:{
-            deep:true,
-            handler(newVal,oldVal){
-                if (newVal[newVal.length - 1] != null) {
-                    if (newVal[newVal.length - 1].child) {
+            },
+            watch: {
+                selectedMainCategory: function (newVal) {
+                    if (newVal != null) {
+                        this.subcategories = [];
+                        this.subcategories = newVal.children;
+                        this.selectedSubCategory = null;
+                        this.subCatOptions = [];
+                        this.childOptions = [];
+                        this.selectedOptions = [];
+                    } else {
+                        this.subcategories = [];
+                        this.subCatOptions = [];
+                        this.childOptions = [];
+                        this.selectedOptions = [];
+                        this.selectedSubCategory = null;
+                    }
+                },
+
+                selectedSubCategory: function (newVal) {
+                    if (newVal != null) {
+                        this.subCatOptions = [];
+                        this.childOptions = [];
+                        this.selectedOptions = [];
                         axios
-                            .get('/api/getOptionChildren/' + newVal[0].id)
+                            .post('/api/getCategoryOption', {selectedSubCat: this.selectedSubCategory.id})
                             .then(response => {
-                                let r = response.data.data;
-                                this.childOptions.push(r[0]);
+                                this.subCatOptions = response.data.data;
+                                this.subCatOptions.forEach((option, index) => {
+                                    option.options.push({name: "other", show: false, content: ""})
+                                });
                             })
                             .catch(error => {
                                 console.log(error)
                             });
+                    } else {
+                        this.subCatOptions = [];
+                        this.childOptions = [];
+                        this.selectedOptions = [];
                     }
-                }
-                else
-                {
-                    this.childOptions.pop();
-                    this.selectedChild.pop();
-
-                }
+                },
             }
-        }
-    }
 }
 </script>
 

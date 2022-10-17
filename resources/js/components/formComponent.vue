@@ -1,4 +1,7 @@
 <template>
+    <div class="back" id="load">
+    <div class="loader"></div>
+    </div>
     <div class="container">
         <div class="row justify-content-center">
             <div class="card m-auto mt-4">
@@ -16,7 +19,7 @@
                     <div v-if="doesHaveChild(selectedOptions[index])" :key="childOptions">
                             <div v-for="(op,i) in childOptions[index]" class="childOptions">
                             <p class="mt-2"><span>{{op.name}}</span></p>
-                            <v-select :clearable="false" class="style-chooser" :options="op.options" v-model="selectedChild[index][i]" label="name" @option:selected="()=>showOtherOption(op,selectedChild[index][i],index,i+1)" ></v-select>
+                            <v-select class="style-chooser" :options="op.options" v-model="selectedChild[index][i]" label="name" @option:selected="()=>showOtherOption(op,selectedChild[index][i],index,i+1)" ></v-select>
                                 <input v-show="isVisable(op.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(op)" placeholder="enter your option">
                                 <hr class="horLine" v-if="childOptions[index].length==i+1">
                         </div>
@@ -49,13 +52,13 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr v-for="(item,index) in selectedOptions">
-                                    <td>{{subCatOptions[index].name}}</td>
-                                    <td v-if="item!=null&&selectedChild[index]!=null">{{getAllChildOptions(index)}}</td>
-                                    <td v-else-if="item!=null&&item.name!='other'">{{item.name}}</td>
-                                    <td v-else-if="item!=null&&item.name=='other'">{{item.content}}</td>
-                                    <td v-else>Not selected</td>
-                                </tr>
+<!--                                <tr v-for="(item,index) in selectedOptions">-->
+<!--                                    <td>{{subCatOptions[index].name}}</td>-->
+<!--                                    <td v-if="item!=null&&selectedChild[index]!=null">{{getAllChildOptions(index)}}</td>-->
+<!--                                    <td v-else-if="item!=null&&item.name!='other'">{{item.name}}</td>-->
+<!--                                    <td v-else-if="item!=null&&item.name=='other'">{{item.content}}</td>-->
+<!--                                    <td v-else>Not selected</td>-->
+<!--                                </tr>-->
                                 </tbody>
                             </table>
                         </div>
@@ -81,7 +84,6 @@ export default {
             subCatOptions: [],
             childOptions: [],
             selectedOptions: [],
-            level:0,
         }
     },
     methods:
@@ -115,15 +117,12 @@ export default {
                         this.childOptions[i] = [];
                         this.selectedChild[i] = [];
                     }
-
-                    if (selected == null) {
-                        this.selectedChild.pop();
-                        this.childOptions.pop();
-                    }
+                    document.getElementById('load').style.display='block'
                     axios
                         .get('/api/getOptionChildren/' + selected.id)
                         .then(response => {
                             let r = response.data.data;
+                            document.getElementById('load').style.display='none'
                             r.forEach((option, index) => {
                                 option.options.push({name: "other", show: false, content: ""});
 
@@ -141,16 +140,16 @@ export default {
                         });
                 }
             },
-            getAllChildOptions(i) {
-                let o = this.selectedOptions[i].name;
-                this.selectedChild[i].forEach(item=>{
-                    if(item.name=='other')
-                        o+='/'+item.content;
-                    else
-                        o+='/'+item.name;
-                })
-                return o;
-            }
+            // getAllChildOptions(i) {
+            //     let o = this.selectedOptions[i].name;
+            //     this.selectedChild[i].forEach(item=>{
+            //         if(item.name=='other')
+            //             o+='/'+item.content;
+            //         else
+            //             o+='/'+item.name;
+            //     })
+            //     return o;
+            // }
             },
             beforeMount: function () {
                 this.mainCategories = [];
@@ -186,10 +185,12 @@ export default {
                         this.subCatOptions = [];
                         this.childOptions = [];
                         this.selectedOptions = [];
+                        document.getElementById('load').style.display='block'
                         axios
                             .post('/api/getCategoryOption', {selectedSubCat: this.selectedSubCategory.id})
                             .then(response => {
                                 this.subCatOptions = response.data.data;
+                                document.getElementById('load').style.display='none'
                                 this.subCatOptions.forEach((option, index) => {
                                     option.options.push({name: "other", show: false, content: ""})
                                 });
@@ -203,6 +204,31 @@ export default {
                         this.selectedOptions = [];
                     }
                 },
+                selectedChild:{
+                    deep:true,
+                    handler(newVal)
+                    {
+                        // console.log(newVal);
+                        for(let count=0;count<newVal.length;count++)
+                        {
+                            let i=newVal[count];
+                            // console.log(i);
+                            if(i!=null)
+                            {
+                               i.forEach((item,index)=>
+                                {
+                                    if(item==null||item.name=='other')
+                                    {
+                                        console.log(index);
+                                        let k=index+1;
+                                        this.childOptions[count].splice(k,Infinity);
+                                        this.selectedChild[count].splice(k,Infinity);
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
             }
 }
 </script>
@@ -258,5 +284,24 @@ table.MyTable td, table.MyTable th {
 
 table.MyTable thead {
     background-color: #fcfcfc;
+}
+.back{
+    background-color: rgba(175, 168, 168,.2);
+    height: 100%;
+    width: 100%;
+    z-index: 2;
+    position: fixed;
+    display: none;
+}
+.loader{
+
+    background: url("/_21_loading-gif-transparent-background_All-Loading-Gif-Image-Transparent-Background-Best-Studio-.gif");
+    position: fixed;
+    left: 40%;
+    top: 30%;
+    height: 100%;
+    width: 100%;
+    z-index: 2;
+    background-repeat: no-repeat;
 }
 </style>

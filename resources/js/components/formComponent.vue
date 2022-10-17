@@ -12,15 +12,15 @@
                 <p class="mt-2"><span>Sub Category </span><span class="asterisk">*</span></p>
                 <v-select class="style-chooser" :options="subcategories" label="name" v-model="selectedSubCategory" ></v-select>
                 <div v-for="(option,index) in subCatOptions" :key="index">
-                    <div :id="'option-'+index">
+                    <div>
                     <p class="mt-2"><span>{{option.name}}</span></p>
                     <v-select @option:selected="()=>showOtherOption(option,selectedOptions[index],index,0)" class="style-chooser" :options="option.options" label="name" v-model="selectedOptions[index]" ></v-select>
-                    <input v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
+                    <input :id="'option-'+index" value="" v-show="isVisable(option.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(option)" placeholder="enter your option">
                     <div v-if="doesHaveChild(selectedOptions[index])" :key="childOptions">
                             <div v-for="(op,i) in childOptions[index]" class="childOptions">
                             <p class="mt-2"><span>{{op.name}}</span></p>
                             <v-select class="style-chooser" :options="op.options" v-model="selectedChild[index][i]" label="name" @option:selected="()=>showOtherOption(op,selectedChild[index][i],index,i+1)" ></v-select>
-                                <input v-show="isVisable(op.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(op)" placeholder="enter your option">
+                                <input :id="'option-'+i+'-'+(i+1)" value="" v-show="isVisable(op.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(op)" placeholder="enter your option">
                                 <hr class="horLine" v-if="childOptions[index].length==i+1">
                         </div>
                     </div>
@@ -91,13 +91,17 @@ export default {
             isVisable(x) {
                 return x.show;
             },
-            showOtherOption(option, selected, i, l = null) {
+            showOtherOption(option, selected, i, l) {
+                document.getElementById('option-'+i).value='';
                 let x = option.options.find(item => item.name == 'other');
-                console.log('fds');
                 if (selected.name == 'other')
-                    x.show = true;
+                {x.show = true;
+
+                }
                 else
-                {  x.show = false;  x.content="";}
+                {  x.show = false;  x.content="";
+
+                }
                 this.getOption(selected, i, l)
 
             },
@@ -112,11 +116,10 @@ export default {
                 else
                     return false
             },
-            getOption(selected, i, l = null) {
+            getOption(selected, i, l) {
                 if (this.doesHaveChild(selected)) {
-                    if (l < 0) {
-                        this.childOptions[i] = [];
-                        this.selectedChild[i] = [];
+                    if (l > 0) {
+                        document.getElementById('option-'+(l-1)+'-'+l).value='';
                     }
                     document.getElementById('load').style.display='block'
                     axios
@@ -128,8 +131,11 @@ export default {
                                 option.options.push({name: "other", show: false, content: ""});
 
                             });
+                            console.log(i,l);
                             if (l > 0)
-                                this.childOptions[i].push(r[0]);
+                            {this.childOptions[i].splice(l,1,r[0]);
+                            this.selectedChild[i].splice(l,1);
+                            }
                             else {
                                 this.childOptions[i] = r;
                                 let arr2 = [];
@@ -321,7 +327,7 @@ table.MyTable thead {
     top: 30%;
     height: 100%;
     width: 100%;
-    z-index: 2;
+    z-index: 3;
     background-repeat: no-repeat;
 }
 </style>

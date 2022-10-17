@@ -52,13 +52,13 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-<!--                                <tr v-for="(item,index) in selectedOptions">-->
-<!--                                    <td>{{subCatOptions[index].name}}</td>-->
-<!--                                    <td v-if="item!=null&&selectedChild[index]!=null">{{getAllChildOptions(index)}}</td>-->
-<!--                                    <td v-else-if="item!=null&&item.name!='other'">{{item.name}}</td>-->
-<!--                                    <td v-else-if="item!=null&&item.name=='other'">{{item.content}}</td>-->
-<!--                                    <td v-else>Not selected</td>-->
-<!--                                </tr>-->
+                                <tr v-for="(item,index) in selectedOptions">
+                                    <td>{{subCatOptions[index].name}}</td>
+                                    <td v-if="item!=null&&selectedChild[index]!=null">{{getAllChildOptions(index)}}</td>
+                                    <td v-else-if="item!=null&&item.name!='other'">{{item.name}}</td>
+                                    <td v-else-if="item!=null&&item.name=='other'">{{item.content}}</td>
+                                    <td v-else>Not selected</td>
+                                </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -93,10 +93,11 @@ export default {
             },
             showOtherOption(option, selected, i, l = null) {
                 let x = option.options.find(item => item.name == 'other');
+                console.log('fds');
                 if (selected.name == 'other')
                     x.show = true;
                 else
-                    x.show = false;
+                {  x.show = false;  x.content="";}
                 this.getOption(selected, i, l)
 
             },
@@ -140,16 +141,17 @@ export default {
                         });
                 }
             },
-            // getAllChildOptions(i) {
-            //     let o = this.selectedOptions[i].name;
-            //     this.selectedChild[i].forEach(item=>{
-            //         if(item.name=='other')
-            //             o+='/'+item.content;
-            //         else
-            //             o+='/'+item.name;
-            //     })
-            //     return o;
-            // }
+            getAllChildOptions(i) {
+                let o = this.selectedOptions[i].name;
+                this.selectedChild[i].forEach(item=>{
+                    if(item!=null){
+                    if(item.name=='other')
+                        o+='/'+item.content;
+                    else
+                        o+='/'+item.name;
+                }});
+                return o;
+            }
             },
             beforeMount: function () {
                 this.mainCategories = [];
@@ -208,19 +210,23 @@ export default {
                     deep:true,
                     handler(newVal)
                     {
-                        // console.log(newVal);
                         for(let count=0;count<newVal.length;count++)
                         {
                             let i=newVal[count];
-                            // console.log(i);
                             if(i!=null)
                             {
                                i.forEach((item,index)=>
                                 {
                                     if(item==null||item.name=='other')
                                     {
-                                        console.log(index);
                                         let k=index+1;
+                                        if(item==null) {
+                                            this.childOptions[count].forEach((it, c) => {
+                                                let u = it.options.length;
+                                                it.options[u - 1].show = false;
+                                                it.options[u - 1].content = "";
+                                            })
+                                        }
                                         this.childOptions[count].splice(k,Infinity);
                                         this.selectedChild[count].splice(k,Infinity);
                                     }
@@ -228,8 +234,22 @@ export default {
                             }
                         }
                     }
+                },
+                selectedOptions: {
+                    deep: true,
+                    handler(newVal) {
+                        for(let i=0;i<newVal.length;i++)
+                        {
+                            if(newVal[i]==null) {
+                                let s=this.subCatOptions[i];
+                                    let u = s.options.length;
+                                    s.options[u - 1].show = false;
+                                    s.options[u - 1].content = "";
+                            }
+                        }
+                    }
                 }
-            }
+                }
 }
 </script>
 

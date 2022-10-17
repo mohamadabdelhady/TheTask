@@ -27,7 +27,7 @@ class GetData extends Controller
     {
         $response=Http::withHeaders([
             'Content-language' => 'en',
-        ])->get("https://staging.mazaady.com/get-options-child/$optionId");
+        ])->get("https://staging.mazaady.com/api/get-options-child/$optionId");
         return  json_decode($response->body());
     }
 }

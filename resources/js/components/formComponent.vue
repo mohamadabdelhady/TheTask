@@ -19,7 +19,7 @@
                     <div v-if="doesHaveChild(selectedOptions[index])" :key="childOptions">
                             <div v-for="(op,i) in childOptions[index]" class="childOptions">
                             <p class="mt-2"><span>{{op.name}}</span></p>
-                            <v-select class="style-chooser" :options="op.options" v-model="selectedChild[index][i]" label="name" @option:selected="()=>showOtherOption(op,selectedChild[index][i],index,i+1)" ></v-select>
+                            <v-select :clearable="false" class="style-chooser" :options="op.options" v-model="selectedChild[index][i]" label="name" @option:selected="()=>showOtherOption(op,selectedChild[index][i],index,i+1)" ></v-select>
                                 <input :id="'option-'+i+'-'+(i+1)" value="" v-show="isVisable((op.options.find(item=>item.name=='other')),op.options)" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(op)" placeholder="enter your option">
                                 <hr class="horLine" v-if="childOptions[index].length==i+1">
                         </div>
@@ -233,7 +233,7 @@ export default {
                                i.forEach((item,index)=>
                                 {
                                     try {
-                                        if (item == null || item.name == 'other' && item.level != 0) {
+                                        if (item == null || item.name == 'other' && item.level > 0) {
                                             let k = index + 1;
                                             if (item == null) {
                                                 this.childOptions[count].forEach((it, c) => {

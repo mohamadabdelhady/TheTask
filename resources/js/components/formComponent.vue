@@ -20,7 +20,7 @@
                             <div v-for="(op,i) in childOptions[index]" class="childOptions">
                             <p class="mt-2"><span>{{op.name}}</span></p>
                             <v-select class="style-chooser" :options="op.options" v-model="selectedChild[index][i]" label="name" @option:selected="()=>showOtherOption(op,selectedChild[index][i],index,i+1)" ></v-select>
-                                <input :id="'option-'+i+'-'+(i+1)" value="" v-show="isVisable(op.options.find(item=>item.name=='other'))" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(op)" placeholder="enter your option">
+                                <input :id="'option-'+i+'-'+(i+1)" value="" v-show="isVisable((op.options.find(item=>item.name=='other')),op.options)" class="vs__dropdown-toggle other" type="text" name="otherContent"  v-on:input="()=>getOtherValue(op)" placeholder="enter your option">
                                 <hr class="horLine" v-if="childOptions[index].length==i+1">
                         </div>
                     </div>
@@ -88,15 +88,17 @@ export default {
     },
     methods:
         {
-            isVisable(x) {
-                return x.show;
+            isVisable(x,y) {
+                if(x!=null)
+                    return x.show;
+                else
+                    return y.show;
             },
             showOtherOption(option, selected, i, l) {
                 document.getElementById('option-'+i).value='';
                 let x = option.options.find(item => item.name == 'other');
                 if (selected.name == 'other')
                 {x.show = true;
-
                 }
                 else
                 {  x.show = false;  x.content="";
@@ -111,10 +113,8 @@ export default {
                 selector.content = val;
             },
             doesHaveChild(selected) {
-                if (selected != null)
-                    return selected.child;
-                else
-                    return false
+                if(selected!=null){
+                    return selected.child;}
             },
             getOption(selected, i, l) {
                 if (this.doesHaveChild(selected)) {
@@ -128,10 +128,10 @@ export default {
                             let r = response.data.data;
                             document.getElementById('load').style.display='none'
                             r.forEach((option, index) => {
-                                option.options.push({name: "other", show: false, content: ""});
+                                option.options.push({name: "other", show: false, content: "",child:false,level:1});
 
                             });
-                            console.log(i,l);
+
                             if (l > 0)
                             {this.childOptions[i].splice(l,1,r[0]);
                             this.selectedChild[i].splice(l,1);
@@ -140,6 +140,13 @@ export default {
                                 this.childOptions[i] = r;
                                 let arr2 = [];
                                 this.selectedChild[i] = arr2;
+                                this.childOptions.forEach((option, index) => {
+                                    for(let i=0;i<option.length;i++) {
+                                        let u = option[i].options.length;
+                                        option[i].options[u -1 ].level=0;
+                                    }
+
+                                });
                             }
                         })
                         .catch(error => {
@@ -149,6 +156,8 @@ export default {
             },
             getAllChildOptions(i) {
                 let o = this.selectedOptions[i].name;
+                if(o=='other')
+                    o=this.selectedOptions[i].content;
                 this.selectedChild[i].forEach(item=>{
                     if(item!=null){
                     if(item.name=='other')
@@ -200,7 +209,7 @@ export default {
                                 this.subCatOptions = response.data.data;
                                 document.getElementById('load').style.display='none'
                                 this.subCatOptions.forEach((option, index) => {
-                                    option.options.push({name: "other", show: false, content: ""})
+                                    option.options.push({name: "other", show: false, content: "",child:false,level:1})
                                 });
                             })
                             .catch(error => {
@@ -223,19 +232,21 @@ export default {
                             {
                                i.forEach((item,index)=>
                                 {
-                                    if(item==null||item.name=='other')
-                                    {
-                                        let k=index+1;
-                                        if(item==null) {
-                                            this.childOptions[count].forEach((it, c) => {
-                                                let u = it.options.length;
-                                                it.options[u - 1].show = false;
-                                                it.options[u - 1].content = "";
-                                            })
+                                    try {
+                                        if (item == null || item.name == 'other' && item.level != 0) {
+                                            let k = index + 1;
+                                            if (item == null) {
+                                                this.childOptions[count].forEach((it, c) => {
+                                                    let u = it.options.length;
+                                                    it.options[u - 1].show = false;
+                                                    it.options[u - 1].content = "";
+                                                })
+                                            }
+                                            this.childOptions[count].splice(k, Infinity);
+                                            this.selectedChild[count].splice(k, Infinity);
                                         }
-                                        this.childOptions[count].splice(k,Infinity);
-                                        this.selectedChild[count].splice(k,Infinity);
                                     }
+                                    catch (e){}
                                 });
                             }
                         }

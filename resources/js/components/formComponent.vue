@@ -72,6 +72,8 @@
     </div>
 </template>
 <script>
+import {watch} from "vue";
+
 export default {
     name: "form-component",
     data() {
@@ -84,6 +86,7 @@ export default {
             subCatOptions: [],
             childOptions: [],
             selectedOptions: [],
+            old:[],
         }
     },
     methods:
@@ -102,7 +105,7 @@ export default {
                 }
                 else
                 {  x.show = false;  x.content="";
-
+                    x.child=selected.child;
                 }
                 this.getOption(selected, i, l)
 
@@ -117,7 +120,7 @@ export default {
                     return selected.child;}
             },
             getOption(selected, i, l) {
-                if (this.doesHaveChild(selected)) {
+                if (this.doesHaveChild(selected)&&selected.name!='other') {
                     if (l > 0) {
                         document.getElementById('option-'+(l-1)+'-'+l).value='';
                     }
@@ -128,10 +131,11 @@ export default {
                             let r = response.data.data;
                             document.getElementById('load').style.display='none'
                             r.forEach((option, index) => {
-                                option.options.push({name: "other", show: false, content: "",child:false,level:1});
+                                option.options.push({name: "other", show: false, content: "",child:false});
 
                             });
 
+                            console.log(selected);
                             if (l > 0)
                             {this.childOptions[i].splice(l,1,r[0]);
                             this.selectedChild[i].splice(l,1);
@@ -140,18 +144,18 @@ export default {
                                 this.childOptions[i] = r;
                                 let arr2 = [];
                                 this.selectedChild[i] = arr2;
-                                this.childOptions.forEach((option, index) => {
-                                    for(let i=0;i<option.length;i++) {
-                                        let u = option[i].options.length;
-                                        option[i].options[u -1 ].level=0;
-                                    }
-
-                                });
                             }
                         })
                         .catch(error => {
                             console.log(error)
                         });
+                }
+                else if(selected.name=='other')
+                {
+                    if(selected.child) {
+                        this.childOptions[i].splice(l, 1);
+                        this.selectedChild[i].splice(l, 1);
+                    }
                 }
             },
             getAllChildOptions(i) {
@@ -188,11 +192,13 @@ export default {
                         this.subCatOptions = [];
                         this.childOptions = [];
                         this.selectedOptions = [];
+                        this.old=[];
                     } else {
                         this.subcategories = [];
                         this.subCatOptions = [];
                         this.childOptions = [];
                         this.selectedOptions = [];
+                        this.old=[];
                         this.selectedSubCategory = null;
                     }
                 },
@@ -203,6 +209,7 @@ export default {
                         this.childOptions = [];
                         this.selectedOptions = [];
                         this.selectedChild=[];
+                        this.old=[];
                         document.getElementById('load').style.display='block'
                         axios
                             .post('/api/getCategoryOption', {selectedSubCat: this.selectedSubCategory.id})
@@ -210,7 +217,7 @@ export default {
                                 this.subCatOptions = response.data.data;
                                 document.getElementById('load').style.display='none'
                                 this.subCatOptions.forEach((option, index) => {
-                                    option.options.push({name: "other", show: false, content: "",child:false,level:1})
+                                    option.options.push({name: "other", show: false, content: "",child:false,parent:false})
                                 });
                             })
                             .catch(error => {
@@ -220,49 +227,7 @@ export default {
                         this.subCatOptions = [];
                         this.childOptions = [];
                         this.selectedOptions = [];
-                    }
-                },
-                selectedChild:{
-                    deep:true,
-                    handler(newVal)
-                    {
-                        for(let count=0;count<newVal.length;count++)
-                        {
-                            let i=newVal[count];
-                            if(i!=null)
-                            {
-                               i.forEach((item,index)=>
-                                {
-                                        if (item == null || item.name == 'other') {
-                                            let k = index + 1;
-                                            if (item == null) {
-                                                this.childOptions[count].forEach((it, c) => {
-                                                    let u = it.options.length;
-                                                    it.options[u - 1].show = false;
-                                                    it.options[u - 1].content = "";
-                                                })
-                                            }
-
-                                                this.childOptions[count].forEach((ele,n)=>{
-                                                    let end=ele.options.length;
-                                                    if(ele.options[end-1].level>0)
-                                                    {
-                                                        console.log(ele.options[end-1].level,n);
-                                                        this.childOptions[count].splice(n,1);
-                                                        this.selectedChild[count].splice(n,1);
-                                                    }
-                                                })
-
-                                            // else
-                                            // {
-                                            //     this.childOptions[count].splice(k+1, Infinity);
-                                            //     this.selectedChild[count].splice(k+1, Infinity);
-                                            // }
-                                        }
-
-                                });
-                            }
-                        }
+                        this.old=[]
                     }
                 },
                 selectedOptions: {

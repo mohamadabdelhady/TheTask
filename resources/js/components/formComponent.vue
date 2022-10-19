@@ -202,6 +202,7 @@ export default {
                         this.subCatOptions = [];
                         this.childOptions = [];
                         this.selectedOptions = [];
+                        this.selectedChild=[];
                         document.getElementById('load').style.display='block'
                         axios
                             .post('/api/getCategoryOption', {selectedSubCat: this.selectedSubCategory.id})
@@ -232,8 +233,7 @@ export default {
                             {
                                i.forEach((item,index)=>
                                 {
-                                    try {
-                                        if (item == null || item.name == 'other' && item.level > 0) {
+                                        if (item == null || item.name == 'other') {
                                             let k = index + 1;
                                             if (item == null) {
                                                 this.childOptions[count].forEach((it, c) => {
@@ -242,11 +242,24 @@ export default {
                                                     it.options[u - 1].content = "";
                                                 })
                                             }
-                                            this.childOptions[count].splice(k, Infinity);
-                                            this.selectedChild[count].splice(k, Infinity);
+
+                                                this.childOptions[count].forEach((ele,n)=>{
+                                                    let end=ele.options.length;
+                                                    if(ele.options[end-1].level>0)
+                                                    {
+                                                        console.log(ele.options[end-1].level,n);
+                                                        this.childOptions[count].splice(n,1);
+                                                        this.selectedChild[count].splice(n,1);
+                                                    }
+                                                })
+
+                                            // else
+                                            // {
+                                            //     this.childOptions[count].splice(k+1, Infinity);
+                                            //     this.selectedChild[count].splice(k+1, Infinity);
+                                            // }
                                         }
-                                    }
-                                    catch (e){}
+
                                 });
                             }
                         }

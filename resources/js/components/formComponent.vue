@@ -72,7 +72,6 @@
     </div>
 </template>
 <script>
-import {watch} from "vue";
 
 export default {
     name: "form-component",
@@ -217,7 +216,7 @@ export default {
                                 this.subCatOptions = response.data.data;
                                 document.getElementById('load').style.display='none'
                                 this.subCatOptions.forEach((option, index) => {
-                                    option.options.push({name: "other", show: false, content: "",child:false,parent:false})
+                                    option.options.push({name: "other", show: false, content: "",child:false})
                                 });
                             })
                             .catch(error => {
